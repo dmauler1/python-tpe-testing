@@ -33,14 +33,16 @@ try:
 
     print("outside of loop")
     
-    try:
-        for future in futures:
-            print("Future loop")
-            print(future.result())
-            print(future.exception())
-            futures.remove(future)
-            print(f"{len(futures)} futures left")
-            time.sleep(1)
+    try:        
+        while futures:
+            for future in futures:
+                if future.done():
+                    print("Future loop")
+                    print(future.result())
+                    futures.remove(future)
+                    print(f"{len(futures)} futures left")
+
+                    time.sleep(1)
     except Exception as e:
         print(f"Caught the following exception in futures loop {e}")
         tpe.shutdown(wait=False, cancel_futures=True) # Throw the brakes, rely on restart behavior
