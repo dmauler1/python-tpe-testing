@@ -24,19 +24,22 @@ class Connections:
         self._connections = []
         self.lock = Lock()
 
-    def get_connection(self):
-        with self.lock:
-            return self._connections.pop()
+    # TODO create a method that get's a connection if available or blocks until one is available
+    # This will replace the get_connection and is_connection_available methods
 
     def put_connection(self, connection):
         with self.lock:            
             self._connections.append(connection)
 
-    def is_connection_available(self):
-        print(f"Checking for available connections {len(self._connections)}")
+    def get_available_connection(self):
         with self.lock:
-            return len(self._connections) > 0
-        
+            while True:
+                if len(self._connections) > 0:
+                    return self._connections.pop()
+                else:
+                    print("Waiting for a connection to become available")
+                    time.sleep(1)
+
     def shutdown_connections(self):
         with self.lock:
             for connection in self._connections:
@@ -48,15 +51,11 @@ class FTPTask:
         self.connection_pool = connection_pool
 
     def run(self):
-        while not self.connection_pool.is_connection_available():
-            print(f"Waiting for connection for job {self.job_id}")
-            time.sleep(5)
-        else:
-            print(f"Running job {self.job_id}")
-            connection = self.connection_pool.get_connection() 
-            print(f"Got connection {connection.get_id()} for job {self.job_id}")  
-            time.sleep(random.randint(5, 6))   
-            return connection
+        connection = self.connection_pool.get_available_connection()        
+        print(f"Running job {self.job_id}")
+        print(f"Got connection {connection.get_id()} for job {self.job_id}")  
+        time.sleep(random.randint(5, 6))   
+        return connection
               
 class Main:
     def __init__(self):
@@ -79,7 +78,6 @@ class Main:
             # This provides more granular control over the futures and whats going on inside them
             tpe = ThreadPoolExecutor(max_workers=2)
             job_ids = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-            #job_ids = [1]
 
             for id in job_ids:
                 print(f"Submitting job id {id}")                
